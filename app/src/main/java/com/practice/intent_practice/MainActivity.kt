@@ -1,7 +1,9 @@
 package com.practice.intent_practice
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.IntentFilter
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -19,15 +21,32 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.app.ActivityCompat
 import coil.compose.AsyncImage
 import com.practice.intent_practice.ui.theme.IntentpracticeTheme
 
 class MainActivity : ComponentActivity() {
 
+    private val airPlaneModeReceiver = AirPlaneModeReceiver()
     private val viewModel by viewModels<MainViewModel>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                0
+            )
+        }
+
+        registerReceiver(
+            airPlaneModeReceiver,
+            IntentFilter(
+                Intent.ACTION_AIRPLANE_MODE_CHANGED
+            )
+        )
         setContent {
             IntentpracticeTheme {
                 Column(
@@ -96,9 +115,32 @@ class MainActivity : ComponentActivity() {
                     }) {
 
                     }
+
+                    Button(onClick = {
+                        Intent(applicationContext, RunningService::class.java).also {
+                            it.action = RunningService.Actions.START.toString()
+                            startService(it)
+                        }
+                    }) {
+                        Text("start running")
+                    }
+
+                    Button(onClick = {
+                        Intent(applicationContext, RunningService::class.java).also {
+                            it.action = RunningService.Actions.STOP.toString()
+                            startService(it)
+                        }
+                    }) {
+                        Text("stop running")
+                    }
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        unregisterReceiver(airPlaneModeReceiver)
     }
 
     override fun onNewIntent(intent: Intent?) {
